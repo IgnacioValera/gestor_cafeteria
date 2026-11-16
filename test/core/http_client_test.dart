@@ -129,5 +129,22 @@ void main() {
 
       expect(api.get('/orders'), throwsA(isA<NetworkFailure>()));
     });
+
+    test('7. un 300 ya no es éxito: lanza UnexpectedFailure con statusCode 300', () {
+      final api = clienteFalso((request) async {
+        return respuestaJson({'detail': 'Multiple Choices'}, 300);
+      });
+
+      expect(
+        api.get('/orders'),
+        throwsA(
+          isA<UnexpectedFailure>().having(
+            (f) => f.statusCode,
+            'statusCode',
+            300,
+          ),
+        ),
+      );
+    });
   });
 }
