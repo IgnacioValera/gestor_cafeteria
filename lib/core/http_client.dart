@@ -66,6 +66,7 @@ class ApiClient {
     return switch (code) {
       404 => NotFoundFailure(_detailMessage(detail) ?? 'Recurso no encontrado'),
       409 => ConflictFailure(_detailMessage(detail) ?? 'Conflicto'),
+      422 => ValidationFailure(_detailFields(detail)),
       >= 500 && <= 599 => ServerFailure(code),
       _ => UnexpectedFailure(
         code,
@@ -76,6 +77,21 @@ class ApiClient {
 
   //detail como texto (404, 409, errores simulados); null si no es texto
   String? _detailMessage(dynamic detail) => detail is String ? detail : null;
+
+  //detail como lista (422): [{loc: ['body', 'campo'], msg: '...'}] -> {campo: msg}
+  Map<String, String> _detailFields(dynamic detail) {
+    final fields = <String, String>{};
+    if (detail is! List) return fields;
+    for (final item in detail) {
+      if (item is! Map) continue;
+      final loc = item['loc'];
+      final msg = item['msg'];
+      if (loc is List && loc.length > 1 && msg != null) {
+        fields['${loc[1]}'] = '$msg';
+      }
+    }
+    return fields;
+  }
 
   dynamic _tryDecode(http.Response response) {
     if (response.bodyBytes.isEmpty) return null;
